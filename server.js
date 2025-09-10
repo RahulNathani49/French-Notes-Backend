@@ -14,7 +14,7 @@ const app = express();
 // Middleware (MUST come before routes)
 // =======================
 app.use(cors({
-    origin: "https://frenchnotes.vercel.app/", // frontend URL
+    origin: "https://frenchnotes.vercel.app", // frontend URL
     credentials: true
 }));
 app.use(express.json());
