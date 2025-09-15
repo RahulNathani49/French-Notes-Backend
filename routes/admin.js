@@ -1,8 +1,53 @@
 const express = require("express");
 const LoginLog = require("../models/LoginLog");
+const User = require("../models/User");        // ✅ import User model
+
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 
 const router = express.Router();
+
+// ==========================
+// Get all users
+// ==========================
+
+router.get("/users", verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const users = await User.find({ role: "student" }, "-password");// exclude password and only student
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ==========================
+// Remove user permanently
+// ==========================
+router.delete("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await User.findByIdAndDelete(id);
+        await LoginLog.deleteMany({ userId: id }); // also cleanup logs
+
+        res.json({ message: "User removed successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==========================
+// Reset all logs of a user
+// ==========================
+router.post("/users/:id/reset-logs", verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await LoginLog.deleteMany({ userId: id });
+
+        res.json({ message: "User logs reset successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ==========================
 // Get all pending login requests

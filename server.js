@@ -7,6 +7,7 @@ const helmet = require("helmet");
 const authRoutes = require("./routes/auth");
 const contentRoutes = require("./routes/content");
 const adminRoutes = require("./routes/admin");
+const ideasRouter = require("./routes/ideas");
 
 const app = express();
 
@@ -14,7 +15,8 @@ const app = express();
 // Middleware (MUST come before routes)
 // =======================
 app.use(cors({
-    origin: "https://frenchnotes.vercel.app", // frontend URL
+     origin: "https://frenchnotes.vercel.app", // frontend URL production
+    //origin : "http://localhost:3000",// frontend URL development
     credentials: true
 }));
 app.use(express.json());
@@ -26,6 +28,7 @@ app.use(helmet());
 app.use("/api/auth", authRoutes);
 app.use("/api/content", contentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use('/api/ideas', ideasRouter);
 
 // =======================
 // MongoDB connection

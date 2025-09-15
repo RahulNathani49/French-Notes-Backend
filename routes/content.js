@@ -1,12 +1,13 @@
 const express = require("express");
 const multer = require("multer");
-const cloudinary = require("../config/cloudinary");
 const Content = require("../models/Content");
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 
 const router = express.Router();
 
 // Use memory storage so we can upload buffers directly to Cloudinary
+const cloudinary = require("../config/cloudinary");
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
