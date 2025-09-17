@@ -75,7 +75,9 @@ router.post("/student-login", async (req, res) => {
         let existingDevice = await LoginLog.findOne({ userId: user._id, deviceId });
 
         // 4️⃣ Count approved devices
-        const approvedCount = await LoginLog.countDocuments({ userId: user._id, status: "approved" });
+        const approvedCount = await LoginLog.countDocuments({ userId: user._id });
+
+
 
         // 5️⃣ Handle existing device
         if (existingDevice) {
@@ -96,7 +98,7 @@ router.post("/student-login", async (req, res) => {
 
         // 6️⃣ Reject if student already has 2 approved devices
         if (approvedCount >= 2) {
-            return res.status(403).json({ error: "❌ Login not permitted. Maximum 2 devices are allowed." });
+            return res.status(403).json({ error: "Login not permitted. Maximum 2 devices are allowed. If you made reset on device contact admin." });
         }
 
         // 7️⃣ Create a new pending login log if device is new

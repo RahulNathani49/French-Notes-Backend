@@ -16,7 +16,7 @@ const app = express();
 // =======================
 app.use(cors({
      origin: "https://frenchnotes.vercel.app", // frontend URL production
-    //origin : "http://localhost:3000",// frontend URL development
+   // origin : "http://localhost:3000",// frontend URL development
     credentials: true
 }));
 app.use(express.json());
