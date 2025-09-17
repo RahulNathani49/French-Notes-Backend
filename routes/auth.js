@@ -133,7 +133,7 @@ router.post("/student-forgot-password", async (req, res) => {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
 
         // 2️⃣ Build the reset link AFTER token exists
-        const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+        const baseUrl = process.env.FRONTEND_URL;
         const resetLink = `${baseUrl}/reset-password/${token}`;
 
         // 3️⃣ Send email
