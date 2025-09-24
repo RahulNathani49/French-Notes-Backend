@@ -139,6 +139,9 @@ router.post("/student-forgot-password", async (req, res) => {
         // 3️⃣ Send email
         const transporter = nodemailer.createTransport({
             service: "Gmail",
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
             auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
         });
 
@@ -146,9 +149,72 @@ router.post("/student-forgot-password", async (req, res) => {
             from: process.env.EMAIL_USER,
             to: user.email,
             subject: "French Notes - Password Reset",
-            html: `<p>Hello ${user.username},</p>
-                   <p>Click <a href="${resetLink}">here</a> to reset your password.</p>
-                   <p>This link is valid for 15 minutes.</p>`,
+            html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Password Reset</title>
+<style>
+  body {
+    background-color: #f5f6fa;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  .container {
+    max-width: 480px;
+    margin: 40px auto;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  h1 {
+    color: #333333;
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+  p {
+    color: #555555;
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  .btn {
+    display: inline-block;
+    background-color: #4a90e2;
+    color: #ffffff !important;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  .note {
+    font-size: 14px;
+    color: #888888;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Password Reset Request</h1>
+    <p>Hello <strong>${user.name}</strong>,</p>
+    <p>We received a request to reset your password for your French Notes account.</p>
+    <p>Please click the button below to set a new password. This link will remain valid for <strong>15 minutes</strong>.</p>
+    <p style="text-align:center;">
+      <a href="${resetLink}" class="btn">Reset My Password</a>
+    </p>
+    <p>If you did not request a password reset, you can safely ignore this email.</p>
+    <p class="note">This is an automated message—please do not reply directly.</p>
+  </div>
+</body>
+</html>
+`
+
         });
 
         res.json({ message: "Reset link sent to your email" });
