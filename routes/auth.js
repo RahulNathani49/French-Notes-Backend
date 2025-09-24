@@ -143,13 +143,25 @@ router.post("/student-forgot-password", async (req, res) => {
         });
 
         await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: user.email,
-            subject: "French Notes - Password Reset",
-            html: `<p>Hello ${user.username},</p>
-                   <p>Click <a href="${resetLink}">here</a> to reset your password.</p>
-                   <p>This link is valid for 15 minutes.</p>`,
-        });
+    from: process.env.EMAIL_USER,
+    to: user.email,
+    subject: "French Notes - Password Reset",
+    html: `
+        <p>Hello ${user.username},</p>
+        <p>Please click the button below to reset your password:</p>
+        <p>
+            <a href="${resetLink}" 
+               style="display:inline-block;padding:10px 20px;
+                      background-color:#4CAF50;color:#fff;
+                      text-decoration:none;border-radius:5px;
+                      font-weight:bold;">
+                Reset Password
+            </a>
+        </p>
+        <p>This link is valid for 15 minutes.</p>
+    `,
+});
+
 
         res.json({ message: "Reset link sent to your email" });
     } catch (err) {
