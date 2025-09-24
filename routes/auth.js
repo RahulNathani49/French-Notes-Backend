@@ -6,6 +6,8 @@ const LoginLog = require("../models/LoginLog");
 const { verifyToken } = require("../middleware/auth");
 const nodemailer = require("nodemailer");
 require('dotenv').config();  // at the top of the file
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const baseUrl = process.env.CLIENT_URL || "http://localhost:3000"; // fallback
 
@@ -122,6 +124,7 @@ router.post("/student-login", async (req, res) => {
 // --------------------------------------------------
 // Forgot Password (Student Only)
 // --------------------------------------------------
+
 router.post("/student-forgot-password", async (req, res) => {
     const { email } = req.body;
 
@@ -137,15 +140,9 @@ router.post("/student-forgot-password", async (req, res) => {
         const resetLink = `${baseUrl}/reset-password/${token}`;
 
         // 3️⃣ Send email
-        const transporter = nodemailer.createTransport({
-            service: "Gmail",
-            host: "smtp.gmail.com",
-            port: 465,
-            secure: true,
-            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-        });
 
-       await transporter.sendMail({
+
+       await sgMail.send({
             from: process.env.EMAIL_USER,
             to: user.email,
             subject: "French Notes - Password Reset",
