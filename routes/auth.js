@@ -145,7 +145,7 @@ router.post("/student-forgot-password", async (req, res) => {
             auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
         });
 
-        await transporter.sendMail({
+       await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: user.email,
             subject: "French Notes - Password Reset",
@@ -216,6 +216,7 @@ router.post("/student-forgot-password", async (req, res) => {
 `
 
         });
+
 
         res.json({ message: "Reset link sent to your email" });
     } catch (err) {
