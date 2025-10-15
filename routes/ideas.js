@@ -13,7 +13,7 @@ const upload = multer({ storage });
 // This route fetches all ideas and is accessible to any authenticated user.
 router.get('/', verifyToken, async (req, res) => {
     try {
-        const ideas = await Idea.find().populate('submittedBy', 'username');
+        const ideas = await Idea.find().populate('submittedBy', 'name');
         res.json(ideas);
     } catch (err) {
         console.error(err);
