@@ -74,45 +74,55 @@ router.post("/student-login", async (req, res) => {
         if (!isMatch) return res.status(400).json({ error: "Invalid student credentials" });
 
         // 3️⃣ Check existing device
-        let existingDevice = await LoginLog.findOne({ userId: user._id, deviceId });
+        const existingDevice = await LoginLog.findOne({ userId: user._id, deviceId });
 
         // 4️⃣ Count approved devices
-        const approvedCount = await LoginLog.countDocuments({ userId: user._id });
+        const approvedCount = await LoginLog.countDocuments({ userId: user._id, status: "approved" });
 
-
-
-        // 5️⃣ Handle existing device
-        if (existingDevice) {
-            if (existingDevice.status === "approved") {
-                // ✅ Issue token for approved device
-                const token = jwt.sign(
-                    { id: user._id, role: user.role },
-                    process.env.JWT_SECRET,
-                    { expiresIn: "1d" }
-                );
-                return res.json({ token, message: "Login successful (approved device)", logId: existingDevice._id });
-            } else if (existingDevice.status === "denied") {
-                return res.status(403).json({ error: "Access denied for this device. Please contact admin." });
-            } else if (existingDevice.status === "pending") {
-                return res.json({ message: "Device login is still pending admin approval", logId: existingDevice._id });
-            }
+        // 5️⃣ If existing device is approved → login directly
+        if (existingDevice && existingDevice.status === "approved") {
+            const token = jwt.sign(
+                { id: user._id, role: user.role },
+                process.env.JWT_SECRET,
+                { expiresIn: "1d" }
+            );
+            return res.json({ token, message: "Login successful (approved device)", logId: existingDevice._id });
         }
 
-        // 6️⃣ Reject if student already has 2 approved devices
+        // 6️⃣ If existing device is denied → block login
+        if (existingDevice && existingDevice.status === "denied") {
+            return res.status(403).json({ error: "Access denied for this device. Please contact admin." });
+        }
+
+        // 7️⃣ If 2 devices already approved → deny new device
         if (approvedCount >= 2) {
-            return res.status(403).json({ error: "Login not permitted. Maximum 2 devices are allowed. If you made reset on device contact admin." });
+            return res.status(403).json({
+                error: "Login not permitted. Maximum 2 devices are allowed. Contact admin if you reset your device."
+            });
         }
 
-        // 7️⃣ Create a new pending login log if device is new
+        // 8️⃣ Auto-approve first or second device
         const log = await LoginLog.create({
             userId: user._id,
             username: user.username,
             deviceId,
             deviceInfo,
-            status: "pending"
+            status: "approved"
         });
 
-        res.json({ message: "Login request pending admin approval", logId: log._id });
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        return res.json({
+            token,
+            message: approvedCount === 0
+                ? "Login successful (first device auto-approved)"
+                : "Login successful (second device auto-approved)",
+            logId: log._id
+        });
 
     } catch (err) {
         console.error("Student login error:", err);
@@ -121,101 +131,80 @@ router.post("/student-login", async (req, res) => {
 });
 
 
+
 // --------------------------------------------------
 // Forgot Password (Student Only)
 // --------------------------------------------------
 
 router.post("/student-forgot-password", async (req, res) => {
-    const { email } = req.body;
+    const { email, resetPassword, recoverUsername } = req.body;
 
     try {
         const user = await User.findOne({ email, role: "student" });
         if (!user) return res.status(404).json({ error: "No student account found" });
 
-        // 1️⃣ Generate the token first
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+        let token, resetLink;
+        if (resetPassword) {
+            // Generate reset token and link
+            token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+            resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+        }
 
-        // 2️⃣ Build the reset link AFTER token exists
-        const baseUrl = process.env.FRONTEND_URL;
-        const resetLink = `${baseUrl}/reset-password/${token}`;
-
-        // 3️⃣ Send email
-
-
-       await sgMail.send({
-            from: process.env.EMAIL_USER,
-            to: user.email,
-            subject: "French Notes - Password Reset",
-            html: `
+        // Build email HTML dynamically
+        let emailHtml = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Password Reset</title>
+<title>Account Assistance</title>
 <style>
-  body {
-    background-color: #f5f6fa;
-    font-family: Arial, Helvetica, sans-serif;
-    margin: 0;
-    padding: 0;
-  }
-  .container {
-    max-width: 480px;
-    margin: 40px auto;
-    background: #ffffff;
-    border-radius: 8px;
-    padding: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
-  h1 {
-    color: #333333;
-    text-align: center;
-    font-size: 22px;
-    margin-bottom: 20px;
-  }
-  p {
-    color: #555555;
-    line-height: 1.6;
-    font-size: 16px;
-  }
-  .btn {
-    display: inline-block;
-    background-color: #4a90e2;
-    color: #ffffff !important;
-    text-decoration: none;
-    padding: 12px 20px;
-    border-radius: 5px;
-    font-weight: bold;
-    margin: 20px 0;
-  }
-  .note {
-    font-size: 14px;
-    color: #888888;
-    margin-top: 20px;
-  }
+  body { background-color: #f5f6fa; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; }
+  .container { max-width: 480px; margin: 40px auto; background: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  h1 { color: #333333; text-align: center; font-size: 22px; margin-bottom: 20px; }
+  p { color: #555555; line-height: 1.6; font-size: 16px; }
+  .btn { display: inline-block; background-color: #4a90e2; color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+  .note { font-size: 14px; color: #888888; margin-top: 20px; }
 </style>
 </head>
 <body>
   <div class="container">
-    <h1>Password Reset Request</h1>
+    <h1>Account Assistance</h1>
     <p>Hello <strong>${user.name}</strong>,</p>
-    <p>We received a request to reset your password for your French Notes account.</p>
-    <p>Please click the button below to set a new password. This link will remain valid for <strong>15 minutes</strong>.</p>
+`;
+
+        // Add username if requested
+        if (recoverUsername) {
+            emailHtml += `<p>Your username is: <strong>${user.username}</strong></p>`;
+        }
+
+        // Add reset password link if requested
+        if (resetPassword) {
+            emailHtml += `
+    <p>We received a request to reset your password for your account. This link will remain valid for <strong>15 minutes</strong>.</p>
     <p style="text-align:center;">
       <a href="${resetLink}" class="btn">Reset My Password</a>
     </p>
-    <p>If you did not request a password reset, you can safely ignore this email.</p>
+`;
+        }
+
+        emailHtml += `
+    <p>If you did not request this, you can safely ignore this email.</p>
     <p class="note">This is an automated message—please do not reply directly.</p>
   </div>
 </body>
 </html>
-`
+`;
 
+        // Send email
+        await sgMail.send({
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: "French Notes - Account Assistance",
+            html: emailHtml
         });
 
-
-        res.json({ message: "Reset link sent to your email" });
+        res.json({ message: "Email sent successfully. Check your inbox and spam folder." });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Server error" });
