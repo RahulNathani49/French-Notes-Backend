@@ -4,7 +4,7 @@ const contentSchema = new mongoose.Schema({
         title: { type: String, required: true },
         type: {
             type: String,
-            enum: ["writing", "speaking", "reading", "listening"],
+            enum: ["writing", "speaking", "reading", "listening","exam-based"],
             required: true
         },
         text: { type: String },
