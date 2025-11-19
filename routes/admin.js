@@ -1,7 +1,8 @@
 const express = require("express");
 const LoginLog = require("../models/LoginLog");
 const User = require("../models/User");        // ✅ import User model
-
+const Content = require("../models/Content");
+const Idea = require("../models/Ideas");
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 
 const router = express.Router();
@@ -9,6 +10,20 @@ const router = express.Router();
 // ==========================
 // Get all users
 // ==========================
+// adminRoutes.js
+router.get("/export-all", verifyAdmin, async (req, res) => {
+    try {
+        const users = await User.find({});
+        const logs = await LoginLog.find({});
+        const contents = await Content.find({});
+        const ideas = await Idea.find({});
+
+        res.json({ users, logs, contents, ideas });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to export all data" });
+    }
+});
 
 router.get("/users", verifyToken, verifyAdmin, async (req, res) => {
     try {
